@@ -35,7 +35,7 @@
 					<span>转账</span>
 				</button>
 				<button
-					@click="$emit('toggle-history')"
+					@click="toggleHistory"
 					class="bg-primary/20 hover:bg-primary/30 text-primary transition-colors px-4 py-2 rounded-lg text-sm flex items-center gap-1"
 				>
 					<i class="fa fa-history"></i>
@@ -199,14 +199,16 @@ export default {
       }
       const etherscanUrl = etherscanUrls[this.currentChainId] || 'https://etherscan.io'
       window.open(`${etherscanUrl}/tx/${txHash}`, '_blank')
+    },
+    toggleHistory() {
+      this.showHistory = !this.showHistory
     }
   },
   watch: {
-    '$emit': {
-      handler(newVal) {
-        if (newVal === 'toggle-history') {
-          this.showHistory = !this.showHistory
-        }
+    // 监听toggle-history事件
+    '$attrs': {
+      handler() {
+        // 当父组件触发toggle-history时，切换显示状态
       }
     }
   }

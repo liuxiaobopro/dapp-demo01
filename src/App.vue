@@ -117,8 +117,14 @@ export default {
       executeTransfer,
       toggleTransferHistory,
       showDebugInfo,
-      loadTransferHistory
+      loadTransferHistory,
+      loadAllAccounts
     } = useMetaMask()
+
+    // 检查MetaMask是否安装
+    const checkMetaMask = () => {
+      return typeof window.ethereum !== 'undefined'
+    }
 
     const { notification, showNotification, hideNotification } = useNotification()
 
@@ -140,8 +146,20 @@ export default {
       isMobileMenuOpen.value = false
     }
 
-    onMounted(() => {
-      loadTransferHistory()
+        onMounted(async () => {
+        loadTransferHistory()
+        // 初始化MetaMask连接检查
+        if (checkMetaMask()) {
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' })
+                if (accounts && accounts.length > 0) {
+                    console.log('发现已连接的账户，自动加载...')
+                    await loadAllAccounts()
+                }
+            } catch (error) {
+                console.error('初始化连接检查失败:', error)
+            }
+        }
     })
 
     onUnmounted(() => {

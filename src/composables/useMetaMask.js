@@ -39,15 +39,19 @@ export function useMetaMask() {
 
     // 格式化余额（从wei转换为ETH）
     const formatBalance = (balance) => {
-        if (!balance) return '0.00'
+        if (!balance) return '0.000000'
 
         try {
-            const balanceWei = parseInt(balance, 16)
+            // 确保balance是字符串格式
+            const balanceStr = typeof balance === 'string' ? balance : balance.toString()
+
+            // 如果是十六进制格式，转换为十进制
+            const balanceWei = balanceStr.startsWith('0x') ? parseInt(balanceStr, 16) : parseInt(balanceStr, 10)
             const ethBalance = balanceWei / Math.pow(10, 18)
             return ethBalance.toFixed(6)
         } catch (error) {
-            console.error('格式化余额失败:', error)
-            return '0.00'
+            console.error('格式化余额失败:', error, '原始数据:', balance)
+            return '0.000000'
         }
     }
 
@@ -86,13 +90,16 @@ export function useMetaMask() {
             if (showLogs) {
                 console.log('正在获取地址余额:', address)
             }
+
             const balance = await window.ethereum.request({
                 method: 'eth_getBalance',
                 params: [address, 'latest']
             })
+
             if (showLogs) {
-                console.log('原始余额数据:', balance)
+                console.log('原始余额数据:', balance, '类型:', typeof balance)
             }
+
             const formattedBalance = formatBalance(balance)
             if (showLogs) {
                 console.log('格式化后余额:', formattedBalance)
@@ -103,21 +110,25 @@ export function useMetaMask() {
             if (showLogs) {
                 showNotification(`获取地址 ${formatAddress(address)} 余额失败: ${error.message}`, true)
             }
-            return '获取失败'
+            return '0.000000'
         }
     }
 
     // 获取交易次数
     const getTransactionCount = async (address) => {
         try {
+            console.log('正在获取交易次数:', address)
             const count = await window.ethereum.request({
                 method: 'eth_getTransactionCount',
                 params: [address, 'latest']
             })
-            return parseInt(count, 16).toString()
+            console.log('原始交易次数数据:', count, '类型:', typeof count)
+            const transactionCount = parseInt(count, 16).toString()
+            console.log('转换后交易次数:', transactionCount)
+            return transactionCount
         } catch (error) {
             console.error('获取交易次数失败:', error)
-            return '-'
+            return '0'
         }
     }
 
@@ -179,20 +190,21 @@ export function useMetaMask() {
                 try {
                     const balance = await getAccountBalance(address)
                     const txCount = await getTransactionCount(address)
-                    accountsWithBalances.push({
+                    const accountData = {
                         address,
                         balance,
                         transactionCount: txCount,
                         index: i,
                         name: `账户 ${i + 1}`
-                    })
-                    console.log(`账户 ${address} 余额获取成功:`, balance)
+                    }
+                    accountsWithBalances.push(accountData)
+                    console.log(`账户 ${address} 数据获取成功:`, accountData)
                 } catch (error) {
-                    console.error(`账户 ${address} 余额获取失败:`, error)
+                    console.error(`账户 ${address} 数据获取失败:`, error)
                     accountsWithBalances.push({
                         address,
-                        balance: '获取失败',
-                        transactionCount: '-',
+                        balance: '0.000000',
+                        transactionCount: '0',
                         index: i,
                         name: `账户 ${i + 1}`
                     })
@@ -496,9 +508,28 @@ export function useMetaMask() {
         showNotification('数据已刷新')
     }
 
+    // 初始化检查
+    const initializeConnection = async () => {
+        if (checkMetaMask()) {
+            try {
+                // 检查是否已有连接的账户
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' })
+                if (accounts && accounts.length > 0) {
+                    console.log('发现已连接的账户，自动加载...')
+                    await loadAllAccounts()
+                }
+            } catch (error) {
+                console.error('初始化连接检查失败:', error)
+            }
+        }
+    }
+
     // 生命周期钩子
     onMounted(() => {
         if (checkMetaMask()) {
+            // 初始化连接检查
+            initializeConnection()
+
             window.ethereum.on('accountsChanged', async (accounts) => {
                 if (accounts.length === 0) {
                     selectedAccount.value = ''
