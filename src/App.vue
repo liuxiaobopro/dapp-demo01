@@ -26,6 +26,7 @@
 					@disconnect="disconnectWallet"
 					@refresh="refreshAccounts"
 					@debug="showDebugInfo"
+					@test-balance="testBalanceFetch"
 				/>
 
 				<!-- 账户列表区域 -->
@@ -118,7 +119,8 @@ export default {
       toggleTransferHistory,
       showDebugInfo,
       loadTransferHistory,
-      loadAllAccounts
+      loadAllAccounts,
+      testBalanceFetch
     } = useMetaMask()
 
     // 检查MetaMask是否安装
@@ -146,20 +148,8 @@ export default {
       isMobileMenuOpen.value = false
     }
 
-        onMounted(async () => {
+    onMounted(() => {
         loadTransferHistory()
-        // 初始化MetaMask连接检查
-        if (checkMetaMask()) {
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' })
-                if (accounts && accounts.length > 0) {
-                    console.log('发现已连接的账户，自动加载...')
-                    await loadAllAccounts()
-                }
-            } catch (error) {
-                console.error('初始化连接检查失败:', error)
-            }
-        }
     })
 
     onUnmounted(() => {

@@ -195,8 +195,23 @@ export default {
         '0x5': 'https://goerli.etherscan.io',
         '0x2a': 'https://kovan.etherscan.io',
         '0x89': 'https://polygonscan.com',
-        '0xa86a': 'https://snowtrace.io'
+        '0xa86a': 'https://snowtrace.io',
+        '0x38': 'https://bscscan.com',
+        '0x61': 'https://testnet.bscscan.com',
+        '0x13881': 'https://mumbai.polygonscan.com'
       }
+
+      // 检查是否是本地网络
+      const isLocalNetwork = this.currentChainId === '0x539' ||
+                            this.currentChainId === '0x7a69' ||
+                            this.currentChainId === '0x1a4' ||
+                            parseInt(this.currentChainId, 16) > 1000000
+
+      if (isLocalNetwork) {
+        alert('本地网络不支持区块链浏览器查看交易')
+        return
+      }
+
       const etherscanUrl = etherscanUrls[this.currentChainId] || 'https://etherscan.io'
       window.open(`${etherscanUrl}/tx/${txHash}`, '_blank')
     },

@@ -42,12 +42,14 @@ export function useMetaMask() {
         if (!balance) return '0.000000'
 
         try {
-            // 确保balance是字符串格式
-            const balanceStr = typeof balance === 'string' ? balance : balance.toString()
+            console.log('格式化余额 - 输入:', balance, '类型:', typeof balance)
 
-            // 如果是十六进制格式，转换为十进制
-            const balanceWei = balanceStr.startsWith('0x') ? parseInt(balanceStr, 16) : parseInt(balanceStr, 10)
+            // 将十六进制字符串转换为十进制数字
+            const balanceWei = parseInt(balance, 16)
+            // 转换为ETH（1 ETH = 10^18 wei）
             const ethBalance = balanceWei / Math.pow(10, 18)
+
+            console.log('格式化余额 - 结果:', ethBalance.toFixed(6))
             return ethBalance.toFixed(6)
         } catch (error) {
             console.error('格式化余额失败:', error, '原始数据:', balance)
@@ -65,9 +67,22 @@ export function useMetaMask() {
             '0x2a': 'Kovan测试网',
             '0x89': 'Polygon主网',
             '0x539': '本地测试网',
-            '0xa86a': 'Avalanche主网'
+            '0x7a69': '本地测试网', // 31337 十进制
+            '0x1a4': '本地测试网', // 420 十进制
+            '0xa86a': 'Avalanche主网',
+            '0x13881': 'Polygon Mumbai测试网',
+            '0x38': 'BSC主网',
+            '0x61': 'BSC测试网',
+            '0x539': '本地测试网'
         }
-        return networks[chainId] || `未知网络 (${chainId})`
+
+        // 如果是本地网络（通常chainId很大或者是常见的本地网络ID）
+        if (chainId === '0x539' || chainId === '0x7a69' || chainId === '0x1a4' ||
+            parseInt(chainId, 16) > 1000000) {
+            return '本地私有网络'
+        }
+
+        return networks[chainId] || `自定义网络 (${chainId})`
     }
 
     // 获取Etherscan基础URL
@@ -79,8 +94,18 @@ export function useMetaMask() {
             '0x5': 'https://goerli.etherscan.io',
             '0x2a': 'https://kovan.etherscan.io',
             '0x89': 'https://polygonscan.com',
-            '0xa86a': 'https://snowtrace.io'
+            '0xa86a': 'https://snowtrace.io',
+            '0x38': 'https://bscscan.com',
+            '0x61': 'https://testnet.bscscan.com',
+            '0x13881': 'https://mumbai.polygonscan.com'
         }
+
+        // 本地网络没有对应的区块链浏览器
+        if (chainId === '0x539' || chainId === '0x7a69' || chainId === '0x1a4' ||
+            parseInt(chainId, 16) > 1000000) {
+            return null // 本地网络没有区块链浏览器
+        }
+
         return etherscanUrls[chainId] || 'https://etherscan.io'
     }
 
@@ -91,6 +116,16 @@ export function useMetaMask() {
                 console.log('正在获取地址余额:', address)
             }
 
+            // 检查MetaMask是否可用
+            if (!window.ethereum) {
+                throw new Error('MetaMask未安装')
+            }
+
+            // 检查地址格式
+            if (!address || !address.startsWith('0x') || address.length !== 42) {
+                throw new Error('无效的地址格式')
+            }
+
             const balance = await window.ethereum.request({
                 method: 'eth_getBalance',
                 params: [address, 'latest']
@@ -98,6 +133,11 @@ export function useMetaMask() {
 
             if (showLogs) {
                 console.log('原始余额数据:', balance, '类型:', typeof balance)
+            }
+
+            if (!balance) {
+                console.warn('余额数据为空')
+                return '0.000000'
             }
 
             const formattedBalance = formatBalance(balance)
@@ -136,6 +176,7 @@ export function useMetaMask() {
     const updateNetworkInfo = async () => {
         try {
             currentChainId.value = await window.ethereum.request({ method: 'eth_chainId' })
+            console.log('currentChainId', currentChainId.value)
             const netVersion = await window.ethereum.request({ method: 'net_version' })
 
             // 获取RPC URL（仅部分环境支持）
@@ -289,7 +330,11 @@ export function useMetaMask() {
         if (!selectedAccount.value || !currentChainId.value) return
 
         const etherscanUrl = getEtherscanBaseUrl(currentChainId.value)
-        window.open(`${etherscanUrl}/address/${selectedAccount.value}`, '_blank')
+        if (etherscanUrl) {
+            window.open(`${etherscanUrl}/address/${selectedAccount.value}`, '_blank')
+        } else {
+            showNotification('本地网络不支持区块链浏览器查看', true)
+        }
     }
 
     // 启动余额轮询
@@ -482,11 +527,44 @@ export function useMetaMask() {
         }
     }
 
+    // 测试余额获取
+    const testBalanceFetch = async () => {
+        if (!selectedAccount.value) {
+            showNotification('请先选择一个账户', true)
+            return
+        }
+
+        try {
+            console.log('=== 开始测试余额获取 ===')
+            console.log('测试地址:', selectedAccount.value)
+
+            // 直接调用MetaMask API
+            const balance = await window.ethereum.request({
+                method: 'eth_getBalance',
+                params: [selectedAccount.value, 'latest']
+            })
+
+            console.log('MetaMask原始响应:', balance)
+            console.log('响应类型:', typeof balance)
+
+            // 测试格式化
+            const formatted = formatBalance(balance)
+            console.log('格式化结果:', formatted)
+
+            showNotification(`测试完成，余额: ${formatted} ETH`)
+        } catch (error) {
+            console.error('测试失败:', error)
+            showNotification('测试失败: ' + error.message, true)
+        }
+    }
+
     // 显示调试信息
-    const showDebugInfo = () => {
+    const showDebugInfo = async () => {
         const debugInfo = {
             'MetaMask状态': window.ethereum ? '已安装' : '未安装',
             '当前网络': currentChainId.value || '未知',
+            '网络名称': networkName.value || '未知',
+            'RPC URL': rpcUrl.value || '未知',
             '已连接账户数': accounts.value.length,
             '选中账户': selectedAccount.value || '无',
             '轮询状态': isPollingActive.value ? '运行中' : '已停止',
@@ -497,9 +575,30 @@ export function useMetaMask() {
             }))
         }
 
+        // 如果是本地网络，获取更多信息
+        if (currentChainId.value) {
+            try {
+                const chainId = await window.ethereum.request({ method: 'eth_chainId' })
+                const netVersion = await window.ethereum.request({ method: 'net_version' })
+                const blockNumber = await window.ethereum.request({ method: 'eth_blockNumber' })
+
+                debugInfo['链ID (十六进制)'] = chainId
+                debugInfo['链ID (十进制)'] = parseInt(chainId, 16)
+                debugInfo['网络版本'] = netVersion
+                debugInfo['最新区块'] = parseInt(blockNumber, 16)
+            } catch (error) {
+                console.error('获取网络详细信息失败:', error)
+            }
+        }
+
         console.log('=== 调试信息 ===')
         console.log(debugInfo)
         showNotification('调试信息已输出到控制台，请按F12查看')
+
+        // 自动运行余额测试
+        if (selectedAccount.value) {
+            testBalanceFetch()
+        }
     }
 
     // 刷新账户
@@ -508,26 +607,26 @@ export function useMetaMask() {
         showNotification('数据已刷新')
     }
 
-    // 初始化检查
-    const initializeConnection = async () => {
-        if (checkMetaMask()) {
-            try {
-                // 检查是否已有连接的账户
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' })
-                if (accounts && accounts.length > 0) {
-                    console.log('发现已连接的账户，自动加载...')
-                    await loadAllAccounts()
-                }
-            } catch (error) {
-                console.error('初始化连接检查失败:', error)
-            }
-        }
-    }
-
     // 生命周期钩子
     onMounted(() => {
         if (checkMetaMask()) {
             // 初始化连接检查
+            const initializeConnection = async () => {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_accounts' })
+                    if (accounts && accounts.length > 0) {
+                        console.log('发现已连接的账户，自动加载...')
+                        await loadAllAccounts()
+                    } else {
+                        isConnected.value = false
+                    }
+                } catch (error) {
+                    console.error('初始化连接检查失败:', error)
+                    isConnected.value = false
+                }
+            }
+
+            // 立即执行初始化
             initializeConnection()
 
             window.ethereum.on('accountsChanged', async (accounts) => {
@@ -584,6 +683,7 @@ export function useMetaMask() {
         executeTransfer,
         toggleTransferHistory,
         showDebugInfo,
-        loadTransferHistory
+        loadTransferHistory,
+        testBalanceFetch
     }
 }
