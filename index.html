@@ -158,6 +158,13 @@
                             <span id="rpcUrl"
                                 class="font-mono text-sm bg-dark px-2 py-1 rounded truncate max-w-xs md:max-w-md"></span>
                         </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-400">实时监控:</span>
+                            <span id="pollingStatus" class="text-sm">
+                                <i class="fa fa-circle text-warning"></i>
+                                <span>未启动</span>
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -344,11 +351,15 @@
         const menuBtn = document.getElementById('menuBtn');
         const closeMenu = document.getElementById('closeMenu');
         const mobileMenu = document.getElementById('mobileMenu');
+        const pollingStatus = document.getElementById('pollingStatus');
 
         // 全局变量
         let currentAccounts = [];
         let selectedAccount = null;
         let currentChainId = null;
+        let balancePollingInterval = null;
+        let isPollingActive = false;
+        let lastKnownBalances = new Map(); // 存储上次已知的余额
 
         // 移动菜单控制
         menuBtn.addEventListener('click', () => {
@@ -460,6 +471,8 @@
 
                 if (currentAccounts.length > 0) {
                     accountDetailsSection.classList.remove('hidden');
+                    // 启动余额轮询
+                    startBalancePolling();
                 }
             } else {
                 connectionStatus.innerHTML = `
@@ -482,6 +495,9 @@
                 accountsSection.classList.add('hidden');
                 accountDetailsSection.classList.add('hidden');
                 noConnectionPrompt.classList.remove('hidden');
+
+                // 停止余额轮询
+                stopBalancePolling();
             }
         }
 
@@ -578,20 +594,28 @@
         }
 
         // 获取账户余额
-        async function getAccountBalance(address) {
+        async function getAccountBalance(address, showLogs = true) {
             try {
-                console.log('正在获取地址余额:', address);
+                if (showLogs) {
+                    console.log('正在获取地址余额:', address);
+                }
                 const balance = await window.ethereum.request({
                     method: 'eth_getBalance',
                     params: [address, 'latest']
                 });
-                console.log('原始余额数据:', balance);
+                if (showLogs) {
+                    console.log('原始余额数据:', balance);
+                }
                 const formattedBalance = formatBalance(balance);
-                console.log('格式化后余额:', formattedBalance);
+                if (showLogs) {
+                    console.log('格式化后余额:', formattedBalance);
+                }
                 return formattedBalance;
             } catch (error) {
                 console.error('获取余额失败:', error);
-                showNotification(`获取地址 ${formatAddress(address)} 余额失败: ${error.message}`, true);
+                if (showLogs) {
+                    showNotification(`获取地址 ${formatAddress(address)} 余额失败: ${error.message}`, true);
+                }
                 return '获取失败';
             }
         }
@@ -707,6 +731,9 @@
                 await updateNetworkInfo();
                 updateConnectionStatus(true);
 
+                // 启动余额轮询
+                startBalancePolling();
+
                 showNotification(`成功加载 ${currentAccounts.length} 个账户信息`);
                 return true;
             } catch (error) {
@@ -779,6 +806,93 @@
             // 实际应用中可以显示一个详细的使用指南模态框
         }
 
+        // 启动余额轮询
+        function startBalancePolling() {
+            if (isPollingActive || currentAccounts.length === 0) return;
+
+            isPollingActive = true;
+            console.log('启动余额轮询监控...');
+
+            // 更新状态指示器
+            updatePollingStatus(true);
+
+            balancePollingInterval = setInterval(async () => {
+                await checkBalanceChanges();
+            }, 3000); // 每3秒检查一次余额变化
+        }
+
+        // 停止余额轮询
+        function stopBalancePolling() {
+            if (balancePollingInterval) {
+                clearInterval(balancePollingInterval);
+                balancePollingInterval = null;
+            }
+            isPollingActive = false;
+            console.log('停止余额轮询监控');
+
+            // 更新状态指示器
+            updatePollingStatus(false);
+        }
+
+        // 更新轮询状态指示器
+        function updatePollingStatus(isActive) {
+            if (!pollingStatus) return;
+
+            if (isActive) {
+                pollingStatus.innerHTML = `
+                    <i class="fa fa-circle text-success pulse-animation"></i>
+                    <span>运行中</span>
+                `;
+            } else {
+                pollingStatus.innerHTML = `
+                    <i class="fa fa-circle text-warning"></i>
+                    <span>未启动</span>
+                `;
+            }
+        }
+
+        // 检查余额变化
+        async function checkBalanceChanges() {
+            if (currentAccounts.length === 0) return;
+
+            console.log('检查余额变化...');
+            let hasChanges = false;
+
+            for (const account of currentAccounts) {
+                try {
+                    const newBalance = await getAccountBalance(account.address, false);
+                    const oldBalance = lastKnownBalances.get(account.address);
+
+                    if (oldBalance && oldBalance !== newBalance && newBalance !== '获取失败') {
+                        console.log(`检测到余额变化 - ${formatAddress(account.address)}: ${oldBalance} → ${newBalance}`);
+
+                        // 更新账户余额
+                        account.balance = newBalance;
+                        lastKnownBalances.set(account.address, newBalance);
+                        hasChanges = true;
+
+                        // 显示余额变化通知
+                        const balanceChange = parseFloat(newBalance) - parseFloat(oldBalance);
+                        const changeText = balanceChange > 0 ? `+${balanceChange.toFixed(6)} ETH` : `${balanceChange.toFixed(6)} ETH`;
+                        showNotification(`账户 ${formatAddress(account.address)} 余额变化: ${changeText}`, false);
+                    } else if (!oldBalance) {
+                        // 首次记录余额
+                        lastKnownBalances.set(account.address, newBalance);
+                    }
+                } catch (error) {
+                    console.error(`检查账户 ${account.address} 余额变化失败:`, error);
+                }
+            }
+
+            // 如果有变化，更新UI
+            if (hasChanges) {
+                updateAccountList();
+                if (selectedAccount) {
+                    await selectAccount(selectedAccount);
+                }
+            }
+        }
+
         // 显示调试信息
         function showDebugInfo() {
             const debugInfo = {
@@ -786,6 +900,7 @@
                 '当前网络': currentChainId || '未知',
                 '已连接账户数': currentAccounts.length,
                 '选中账户': selectedAccount || '无',
+                '轮询状态': isPollingActive ? '运行中' : '已停止',
                 '账户详情': currentAccounts.map(acc => ({
                     '地址': acc.address,
                     '余额': acc.balance,
@@ -880,6 +995,23 @@
             }
         }
 
+        // 页面可见性变化处理
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // 页面不可见时暂停轮询
+                if (isPollingActive) {
+                    stopBalancePolling();
+                    console.log('页面不可见，暂停余额轮询');
+                }
+            } else {
+                // 页面可见时恢复轮询
+                if (currentAccounts.length > 0 && !isPollingActive) {
+                    startBalancePolling();
+                    console.log('页面可见，恢复余额轮询');
+                }
+            }
+        });
+
         // 页面加载时检查是否已有连接的账户
         window.addEventListener('load', async () => {
             initEventListeners();
@@ -897,6 +1029,11 @@
                     updateConnectionStatus(false);
                 }
             }
+        });
+
+        // 页面卸载时清理资源
+        window.addEventListener('beforeunload', () => {
+            stopBalancePolling();
         });
     </script>
 </body>
