@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MetaMask 连接演示</title>
+    <title>MetaMask 账户管理</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
 
@@ -18,6 +18,9 @@
                         secondary: '#10141F',
                         accent: '#00F0FF',
                         dark: '#0B0E19',
+                        success: '#4CAF50',
+                        warning: '#FFC107',
+                        danger: '#F44336',
                     },
                     fontFamily: {
                         inter: ['Inter', 'sans-serif'],
@@ -45,6 +48,20 @@
                 transform: translateY(-5px);
                 box-shadow: 0 10px 25px -5px rgba(98, 126, 234, 0.3);
             }
+            .pulse-animation {
+                animation: pulse 2s infinite;
+            }
+            @keyframes pulse {
+                0% {
+                    box-shadow: 0 0 0 0 rgba(98, 126, 234, 0.4);
+                }
+                70% {
+                    box-shadow: 0 0 0 10px rgba(98, 126, 234, 0);
+                }
+                100% {
+                    box-shadow: 0 0 0 0 rgba(98, 126, 234, 0);
+                }
+            }
         }
     </style>
 </head>
@@ -56,13 +73,13 @@
         <div class="flex items-center gap-2">
             <i class="fa fa-ethereum text-accent text-2xl"></i>
             <span
-                class="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">EthConnect</span>
+                class="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">EthAccountManager</span>
         </div>
         <div class="hidden md:flex items-center gap-8">
             <a href="#" class="hover:text-accent transition-colors">首页</a>
-            <a href="#" class="hover:text-accent transition-colors">功能</a>
-            <a href="#" class="hover:text-accent transition-colors">文档</a>
-            <a href="#" class="hover:text-accent transition-colors">关于</a>
+            <a href="#" class="hover:text-accent transition-colors">账户</a>
+            <a href="#" class="hover:text-accent transition-colors">交易</a>
+            <a href="#" class="hover:text-accent transition-colors">帮助</a>
         </div>
         <button id="menuBtn" class="md:hidden text-2xl">
             <i class="fa fa-bars"></i>
@@ -76,77 +93,189 @@
             <i class="fa fa-times"></i>
         </button>
         <a href="#" class="hover:text-accent transition-colors">首页</a>
-        <a href="#" class="hover:text-accent transition-colors">功能</a>
-        <a href="#" class="hover:text-accent transition-colors">文档</a>
-        <a href="#" class="hover:text-accent transition-colors">关于</a>
+        <a href="#" class="hover:text-accent transition-colors">账户</a>
+        <a href="#" class="hover:text-accent transition-colors">交易</a>
+        <a href="#" class="hover:text-accent transition-colors">帮助</a>
     </div>
 
     <!-- 主内容区 -->
-    <main class="flex-grow flex flex-col items-center justify-center px-6 py-16 md:py-24">
-        <div class="max-w-4xl w-full mx-auto">
-            <div class="text-center mb-16">
-                <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold mb-6 leading-tight">
-                    连接你的 <span class="text-glow text-accent">MetaMask</span> 钱包
+    <main class="flex-grow px-6 py-12 md:py-20">
+        <div class="max-w-6xl w-full mx-auto">
+            <!-- 头部区域 -->
+            <div class="text-center mb-12 md:mb-16">
+                <h1 class="text-[clamp(1.8rem,5vw,3rem)] font-bold mb-4 leading-tight">
+                    MetaMask <span class="text-glow text-accent">账户管理</span>
                 </h1>
-                <p class="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto">
-                    点击下方按钮，授权访问你的以太坊账户，开启区块链交互体验
+                <p class="text-gray-300 text-lg max-w-2xl mx-auto">
+                    查看和管理你MetaMask钱包中的所有账户，获取详细的账户信息和余额数据
                 </p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-                <div class="bg-dark/50 rounded-xl p-8 border border-primary/20 card-hover">
-                    <div class="w-14 h-14 bg-primary/20 rounded-lg flex items-center justify-center mb-6">
-                        <i class="fa fa-plug text-primary text-2xl"></i>
+            <!-- 连接状态和控制区 -->
+            <div class="bg-dark/50 rounded-xl p-6 md:p-8 border border-primary/20 mb-10">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div>
+                        <h2 class="text-xl font-semibold mb-2">连接状态</h2>
+                        <div id="connectionStatus" class="flex items-center gap-2 text-warning">
+                            <i class="fa fa-circle-o-notch fa-spin"></i>
+                            <span>未连接到MetaMask</span>
+                        </div>
                     </div>
-                    <h3 class="text-xl font-semibold mb-3">简单连接</h3>
-                    <p class="text-gray-400 mb-6">一键连接你的MetaMask钱包，无需复杂设置</p>
-                    <button id="connectBtn"
-                        class="w-full bg-gradient-eth py-3 px-6 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
-                        <i class="fa fa-link"></i>
-                        <span>连接钱包</span>
-                    </button>
+                    <div class="flex gap-4 w-full md:w-auto">
+                        <button id="connectBtn"
+                            class="flex-1 md:flex-none bg-gradient-eth py-3 px-8 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+                            <i class="fa fa-link"></i>
+                            <span>连接钱包</span>
+                        </button>
+                        <button id="refreshBtn"
+                            class="flex-1 md:flex-none bg-dark py-3 px-6 rounded-lg font-medium border border-primary/30 hover:border-primary/60 transition-all flex items-center justify-center gap-2"
+                            disabled>
+                            <i class="fa fa-refresh"></i>
+                            <span>刷新数据</span>
+                        </button>
+                        <button id="debugBtn"
+                            class="flex-1 md:flex-none bg-warning/20 text-warning py-3 px-6 rounded-lg font-medium border border-warning/30 hover:border-warning/60 transition-all flex items-center justify-center gap-2"
+                            disabled>
+                            <i class="fa fa-bug"></i>
+                            <span>调试信息</span>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="bg-dark/50 rounded-xl p-8 border border-primary/20 card-hover">
-                    <div class="w-14 h-14 bg-primary/20 rounded-lg flex items-center justify-center mb-6">
-                        <i class="fa fa-info-circle text-primary text-2xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold mb-3">账户信息</h3>
-                    <p class="text-gray-400 mb-6">查看已连接的账户地址和网络信息</p>
-                    <div id="accountInfo" class="w-full bg-dark/80 py-4 px-6 rounded-lg text-center text-gray-400">
-                        未连接钱包
+                <!-- 网络信息 -->
+                <div id="networkInfo" class="mt-6 pt-6 border-t border-gray-700/50 hidden">
+                    <div class="flex flex-wrap gap-4 items-center">
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-400">当前网络:</span>
+                            <span id="networkName" class="font-medium"></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-400">链ID:</span>
+                            <span id="chainId" class="font-mono bg-dark px-2 py-1 rounded"></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-400">RPC URL:</span>
+                            <span id="rpcUrl"
+                                class="font-mono text-sm bg-dark px-2 py-1 rounded truncate max-w-xs md:max-w-md"></span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-dark/30 rounded-xl p-6 md:p-8 border border-primary/10">
-                <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <i class="fa fa-exclamation-circle text-accent"></i>
-                    如何使用
-                </h3>
-                <ul class="space-y-4 text-gray-300">
-                    <li class="flex gap-4">
-                        <span
-                            class="bg-primary/20 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
-                        <p>确保你已安装<a href="https://metamask.io/" target="_blank"
-                                class="text-accent hover:underline">MetaMask浏览器插件</a></p>
-                    </li>
-                    <li class="flex gap-4">
-                        <span
-                            class="bg-primary/20 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
-                        <p>点击"连接钱包"按钮，触发MetaMask授权请求</p>
-                    </li>
-                    <li class="flex gap-4">
-                        <span
-                            class="bg-primary/20 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
-                        <p>在MetaMask弹窗中确认授权，允许网站访问你的账户</p>
-                    </li>
-                    <li class="flex gap-4">
-                        <span
-                            class="bg-primary/20 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">4</span>
-                        <p>授权成功后，你将看到已连接的账户信息</p>
-                    </li>
-                </ul>
+            <!-- 账户列表区域 -->
+            <div id="accountsSection" class="mb-12 hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold">
+                        <i class="fa fa-users text-primary mr-2"></i>账户列表
+                    </h2>
+                    <span id="accountsCount" class="bg-primary/20 text-primary px-3 py-1 rounded-full text-sm">
+                        0 个账户
+                    </span>
+                </div>
+
+                <div id="accountsList" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- 账户卡片将通过JavaScript动态生成 -->
+                </div>
+            </div>
+
+            <!-- 详细信息区域 -->
+            <div id="accountDetailsSection" class="bg-dark/50 rounded-xl p-6 md:p-8 border border-primary/20 hidden">
+                <h2 class="text-xl font-semibold mb-6">
+                    <i class="fa fa-info-circle text-primary mr-2"></i>账户详情
+                </h2>
+
+                <div id="selectedAccountHeader"
+                    class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 pb-6 border-b border-gray-700/50">
+                    <div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span id="selectedAccountName" class="font-semibold"></span>
+                            <span id="selectedAccountIndicator"
+                                class="bg-success/20 text-success text-xs px-2 py-0.5 rounded-full">当前选中</span>
+                        </div>
+                        <div id="selectedAccountAddress"
+                            class="font-mono text-sm bg-dark px-3 py-1.5 rounded-lg w-full md:w-auto"></div>
+                    </div>
+                    <div class="mt-4 md:mt-0 flex gap-3">
+                        <button id="copyAddressBtn"
+                            class="bg-dark hover:bg-dark/70 transition-colors px-4 py-2 rounded-lg text-sm flex items-center gap-1 border border-gray-700">
+                            <i class="fa fa-copy"></i>
+                            <span>复制地址</span>
+                        </button>
+                        <button id="viewOnEtherscanBtn"
+                            class="bg-primary/20 hover:bg-primary/30 text-primary transition-colors px-4 py-2 rounded-lg text-sm flex items-center gap-1">
+                            <i class="fa fa-external-link"></i>
+                            <span>查看详情</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-dark p-5 rounded-lg border border-gray-700/50">
+                        <div class="text-gray-400 text-sm mb-1">账户余额</div>
+                        <div class="flex items-baseline">
+                            <span id="accountBalance" class="text-2xl font-semibold"></span>
+                            <span class="ml-1 text-gray-400">ETH</span>
+                        </div>
+                        <div id="balanceInFiat" class="text-gray-400 text-sm mt-1"></div>
+                    </div>
+
+                    <div class="bg-dark p-5 rounded-lg border border-gray-700/50">
+                        <div class="text-gray-400 text-sm mb-1">交易次数</div>
+                        <div id="transactionCount" class="text-2xl font-semibold">-</div>
+                        <div class="text-gray-400 text-sm mt-1">在当前网络上</div>
+                    </div>
+
+                    <div class="bg-dark p-5 rounded-lg border border-gray-700/50">
+                        <div class="text-gray-400 text-sm mb-1">账户状态</div>
+                        <div id="accountStatus" class="text-2xl font-semibold text-success">活跃</div>
+                        <div id="lastActivity" class="text-gray-400 text-sm mt-1">最后活动: 未知</div>
+                    </div>
+                </div>
+
+                <div class="bg-dark/50 p-5 rounded-lg border border-gray-700/50">
+                    <h3 class="font-medium mb-4">地址详情</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                        <div>
+                            <span class="text-gray-400">校验和地址:</span>
+                            <div id="checksumAddress"
+                                class="font-mono bg-dark/70 px-2 py-1 rounded mt-1 overflow-x-auto"></div>
+                        </div>
+                        <div>
+                            <span class="text-gray-400">地址类型:</span>
+                            <div id="addressType" class="font-medium mt-1">外部账户 (EOA)</div>
+                        </div>
+                        <div>
+                            <span class="text-gray-400">是否合约:</span>
+                            <div id="isContract" class="font-medium mt-1">否</div>
+                        </div>
+                        <div>
+                            <span class="text-gray-400">创建时间:</span>
+                            <div id="creationTime" class="font-medium mt-1">未知</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 未连接状态提示 -->
+            <div id="noConnectionPrompt" class="bg-dark/30 rounded-xl p-8 border border-primary/10 text-center">
+                <div class="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fa fa-ethereum text-primary text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-3">未检测到MetaMask连接</h3>
+                <p class="text-gray-400 mb-6 max-w-md mx-auto">
+                    请点击上方的"连接钱包"按钮，授权访问你的MetaMask账户以查看详细信息
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center gap-4 max-w-xs mx-auto">
+                    <a href="https://metamask.io/download/" target="_blank"
+                        class="flex-1 bg-white text-dark py-3 px-6 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
+                        <i class="fa fa-download"></i>
+                        <span>下载MetaMask</span>
+                    </a>
+                    <button id="guideBtn"
+                        class="flex-1 bg-transparent border border-primary/50 text-primary py-3 px-6 rounded-lg font-medium hover:bg-primary/10 transition-colors">
+                        查看教程
+                    </button>
+                </div>
             </div>
         </div>
     </main>
@@ -157,12 +286,12 @@
     </div>
 
     <!-- 页脚 -->
-    <footer class="bg-dark/80 backdrop-blur-md py-8 px-6 border-t border-primary/20">
+    <footer class="bg-dark/80 backdrop-blur-md py-8 px-6 border-t border-primary/20 mt-auto">
         <div class="max-w-6xl mx-auto">
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <div class="flex items-center gap-2 mb-4 md:mb-0">
                     <i class="fa fa-ethereum text-accent"></i>
-                    <span class="font-bold">EthConnect</span>
+                    <span class="font-bold">EthAccountManager</span>
                 </div>
                 <div class="flex gap-6">
                     <a href="#" class="text-gray-400 hover:text-accent transition-colors">
@@ -177,7 +306,7 @@
                 </div>
             </div>
             <div class="mt-6 text-center text-gray-500 text-sm">
-                &copy; 2023 EthConnect. 保护你的数字资产安全。
+                &copy; 2023 EthAccountManager. 所有账户数据均在本地处理，不会上传至服务器。
             </div>
         </div>
     </footer>
@@ -185,18 +314,45 @@
     <script>
         // DOM元素
         const connectBtn = document.getElementById('connectBtn');
-        const accountInfo = document.getElementById('accountInfo');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const debugBtn = document.getElementById('debugBtn');
+        const guideBtn = document.getElementById('guideBtn');
+        const copyAddressBtn = document.getElementById('copyAddressBtn');
+        const viewOnEtherscanBtn = document.getElementById('viewOnEtherscanBtn');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const networkInfo = document.getElementById('networkInfo');
+        const networkName = document.getElementById('networkName');
+        const chainId = document.getElementById('chainId');
+        const rpcUrl = document.getElementById('rpcUrl');
+        const accountsSection = document.getElementById('accountsSection');
+        const accountsList = document.getElementById('accountsList');
+        const accountsCount = document.getElementById('accountsCount');
+        const accountDetailsSection = document.getElementById('accountDetailsSection');
+        const selectedAccountName = document.getElementById('selectedAccountName');
+        const selectedAccountAddress = document.getElementById('selectedAccountAddress');
+        const accountBalance = document.getElementById('accountBalance');
+        const balanceInFiat = document.getElementById('balanceInFiat');
+        const transactionCount = document.getElementById('transactionCount');
+        const accountStatus = document.getElementById('accountStatus');
+        const lastActivity = document.getElementById('lastActivity');
+        const checksumAddress = document.getElementById('checksumAddress');
+        const addressType = document.getElementById('addressType');
+        const isContract = document.getElementById('isContract');
+        const creationTime = document.getElementById('creationTime');
+        const noConnectionPrompt = document.getElementById('noConnectionPrompt');
         const notification = document.getElementById('notification');
         const menuBtn = document.getElementById('menuBtn');
         const closeMenu = document.getElementById('closeMenu');
         const mobileMenu = document.getElementById('mobileMenu');
 
+        // 全局变量
+        let currentAccounts = [];
+        let selectedAccount = null;
+        let currentChainId = null;
+
         // 移动菜单控制
         menuBtn.addEventListener('click', () => {
             mobileMenu.classList.remove('hidden');
-            setTimeout(() => {
-                mobileMenu.classList.add('animate-fadeIn');
-            }, 10);
         });
 
         closeMenu.addEventListener('click', () => {
@@ -209,9 +365,9 @@
             notification.className = 'fixed bottom-6 right-6 px-6 py-4 rounded-lg shadow-lg transform translate-y-0 opacity-100 transition-all duration-300 z-50 max-w-sm';
 
             if (isError) {
-                notification.classList.add('bg-red-500/90', 'text-white');
+                notification.classList.add('bg-danger/90', 'text-white');
             } else {
-                notification.classList.add('bg-green-500/90', 'text-white');
+                notification.classList.add('bg-success/90', 'text-white');
             }
 
             setTimeout(() => {
@@ -234,115 +390,514 @@
             return `${address.slice(0, 6)}...${address.slice(-4)}`;
         }
 
-        // 更新账户信息显示
-        function updateAccountInfo(accounts, chainId) {
-            if (accounts.length > 0) {
-                const formattedAddress = formatAddress(accounts[0]);
-                let networkName = '未知网络';
+        // 格式化余额（从wei转换为ETH）
+        function formatBalance(balance) {
+            if (!balance) return '0.00';
 
-                // 根据chainId判断网络名称
-                switch (chainId) {
-                    case '0x1':
-                        networkName = '以太坊主网';
-                        break;
-                    case '0x3':
-                        networkName = 'Ropsten测试网';
-                        break;
-                    case '0x4':
-                        networkName = 'Rinkeby测试网';
-                        break;
-                    case '0x5':
-                        networkName = 'Goerli测试网';
-                        break;
-                    case '0x2a':
-                        networkName = 'Kovan测试网';
-                        break;
-                    case '0x89':
-                        networkName = 'Polygon主网';
-                        break;
-                }
-
-                accountInfo.innerHTML = `
-                    <div class="flex items-center justify-center gap-2 text-accent mb-2">
-                        <i class="fa fa-user-circle"></i>
-                        <span>${formattedAddress}</span>
-                    </div>
-                    <div class="text-sm text-gray-400">
-                        网络: ${networkName} (${chainId})
-                    </div>
-                `;
-                showNotification('已成功连接MetaMask钱包');
+            try {
+                // 将十六进制字符串转换为十进制数字
+                const balanceWei = parseInt(balance, 16);
+                // 转换为ETH（1 ETH = 10^18 wei）
+                const ethBalance = balanceWei / Math.pow(10, 18);
+                return ethBalance.toFixed(6);
+            } catch (error) {
+                console.error('格式化余额失败:', error);
+                return '0.00';
             }
         }
 
-        // 连接MetaMask
-        async function connectMetaMask() {
+        // 获取网络名称
+        function getNetworkName(chainId) {
+            const networks = {
+                '0x1': '以太坊主网',
+                '0x3': 'Ropsten测试网',
+                '0x4': 'Rinkeby测试网',
+                '0x5': 'Goerli测试网',
+                '0x2a': 'Kovan测试网',
+                '0x89': 'Polygon主网',
+                '0x539': '本地测试网',
+                '0xa86a': 'Avalanche主网'
+            };
+            return networks[chainId] || `未知网络 (${chainId})`;
+        }
+
+        // 获取Etherscan基础URL
+        function getEtherscanBaseUrl(chainId) {
+            const etherscanUrls = {
+                '0x1': 'https://etherscan.io',
+                '0x3': 'https://ropsten.etherscan.io',
+                '0x4': 'https://rinkeby.etherscan.io',
+                '0x5': 'https://goerli.etherscan.io',
+                '0x2a': 'https://kovan.etherscan.io',
+                '0x89': 'https://polygonscan.com',
+                '0xa86a': 'https://snowtrace.io'
+            };
+            return etherscanUrls[chainId] || 'https://etherscan.io';
+        }
+
+        // 更新连接状态显示
+        function updateConnectionStatus(isConnected) {
+            if (isConnected) {
+                connectionStatus.innerHTML = `
+                    <i class="fa fa-check-circle text-success"></i>
+                    <span>已连接到MetaMask</span>
+                `;
+                connectBtn.innerHTML = `
+                    <i class="fa fa-sign-out"></i>
+                    <span>断开连接</span>
+                `;
+                refreshBtn.disabled = false;
+                refreshBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                refreshBtn.classList.add('hover:border-primary/60');
+                debugBtn.disabled = false;
+                debugBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                debugBtn.classList.add('hover:border-warning/60');
+
+                // 显示账户和网络信息，隐藏提示
+                networkInfo.classList.remove('hidden');
+                accountsSection.classList.remove('hidden');
+                noConnectionPrompt.classList.add('hidden');
+
+                if (currentAccounts.length > 0) {
+                    accountDetailsSection.classList.remove('hidden');
+                }
+            } else {
+                connectionStatus.innerHTML = `
+                    <i class="fa fa-circle-o-notch fa-spin"></i>
+                    <span>未连接到MetaMask</span>
+                `;
+                connectBtn.innerHTML = `
+                    <i class="fa fa-link"></i>
+                    <span>连接钱包</span>
+                `;
+                refreshBtn.disabled = true;
+                refreshBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                refreshBtn.classList.remove('hover:border-primary/60');
+                debugBtn.disabled = true;
+                debugBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                debugBtn.classList.remove('hover:border-warning/60');
+
+                // 隐藏账户和网络信息，显示提示
+                networkInfo.classList.add('hidden');
+                accountsSection.classList.add('hidden');
+                accountDetailsSection.classList.add('hidden');
+                noConnectionPrompt.classList.remove('hidden');
+            }
+        }
+
+        // 更新网络信息
+        async function updateNetworkInfo() {
+            try {
+                currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+                const netVersion = await window.ethereum.request({ method: 'net_version' });
+
+                // 获取RPC URL（仅部分环境支持）
+                let rpcUrlValue = '未知';
+                if (window.ethereum.providers && window.ethereum.providers.length > 0) {
+                    try {
+                        const config = await window.ethereum.request({
+                            method: 'wallet_getProviderConfig'
+                        });
+                        rpcUrlValue = config.rpcUrl || '未知';
+                    } catch (e) {
+                        console.log('无法获取RPC URL:', e);
+                    }
+                }
+
+                networkName.textContent = getNetworkName(currentChainId);
+                chainId.textContent = currentChainId;
+                rpcUrl.textContent = rpcUrlValue;
+
+                return currentChainId;
+            } catch (error) {
+                console.error('更新网络信息失败:', error);
+                showNotification('更新网络信息失败', true);
+                return null;
+            }
+        }
+
+        // 创建账户卡片
+        function createAccountCard(account, isSelected) {
+            const card = document.createElement('div');
+            card.className = `bg-dark p-6 rounded-xl border ${isSelected ? 'border-accent pulse-animation' : 'border-gray-700/50'} card-hover cursor-pointer`;
+            card.dataset.address = account.address;
+
+            // 尝试获取账户名称（MetaMask可能不提供）
+            const accountName = account.name || `账户 ${currentAccounts.indexOf(account) + 1}`;
+
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                            <span class="font-bold">${account.address.slice(2, 4)}</span>
+                        </div>
+                        <div>
+                            <div class="font-medium">${accountName}</div>
+                            <div class="text-sm text-gray-400 font-mono">${formatAddress(account.address)}</div>
+                        </div>
+                    </div>
+                    ${isSelected ? '<div class="bg-accent/20 text-accent text-xs px-2 py-1 rounded-full">当前</div>' : ''}
+                </div>
+                <div class="mb-4">
+                    <div class="text-sm text-gray-400 mb-1">余额</div>
+                    <div class="flex items-baseline">
+                        <div class="font-semibold">${account.balance}</div>
+                        <div class="ml-1 text-sm text-gray-400">ETH</div>
+                    </div>
+                </div>
+                <button class="select-account-btn w-full py-2.5 rounded-lg border ${isSelected ? 'border-accent bg-accent/10 text-accent' : 'border-gray-700 hover:border-primary/60'} transition-all text-sm font-medium">
+                    ${isSelected ? '已选中' : '选择此账户'}
+                </button>
+            `;
+
+            // 添加点击事件
+            card.addEventListener('click', (e) => {
+                if (!e.target.closest('.select-account-btn')) {
+                    selectAccount(account.address);
+                }
+            });
+
+            const selectBtn = card.querySelector('.select-account-btn');
+            selectBtn.addEventListener('click', () => {
+                selectAccount(account.address);
+            });
+
+            return card;
+        }
+
+        // 更新账户列表
+        function updateAccountList() {
+            accountsList.innerHTML = '';
+            accountsCount.textContent = `${currentAccounts.length} 个账户`;
+
+            currentAccounts.forEach(account => {
+                const isSelected = selectedAccount === account.address;
+                const card = createAccountCard(account, isSelected);
+                accountsList.appendChild(card);
+            });
+        }
+
+        // 获取账户余额
+        async function getAccountBalance(address) {
+            try {
+                console.log('正在获取地址余额:', address);
+                const balance = await window.ethereum.request({
+                    method: 'eth_getBalance',
+                    params: [address, 'latest']
+                });
+                console.log('原始余额数据:', balance);
+                const formattedBalance = formatBalance(balance);
+                console.log('格式化后余额:', formattedBalance);
+                return formattedBalance;
+            } catch (error) {
+                console.error('获取余额失败:', error);
+                showNotification(`获取地址 ${formatAddress(address)} 余额失败: ${error.message}`, true);
+                return '获取失败';
+            }
+        }
+
+        // 获取交易次数
+        async function getTransactionCount(address) {
+            try {
+                const count = await window.ethereum.request({
+                    method: 'eth_getTransactionCount',
+                    params: [address, 'latest']
+                });
+                // 转换为十进制
+                return parseInt(count, 16).toString();
+            } catch (error) {
+                console.error('获取交易次数失败:', error);
+                return '-';
+            }
+        }
+
+        // 选择账户并更新详情
+        async function selectAccount(address) {
+            selectedAccount = address;
+
+            // 找到选中的账户
+            const account = currentAccounts.find(acc => acc.address === address);
+            if (!account) return;
+
+            // 更新账户列表选中状态
+            updateAccountList();
+
+            // 更新账户详情
+            const accountName = account.name || `账户 ${currentAccounts.indexOf(account) + 1}`;
+            selectedAccountName.textContent = accountName;
+            selectedAccountAddress.textContent = address;
+            checksumAddress.textContent = address;
+
+            // 更新余额
+            accountBalance.textContent = account.balance;
+
+            // 模拟法币价值（实际应用中应从API获取）
+            const ethPrice = 1800; // 假设ETH价格
+            const balanceNum = parseFloat(account.balance);
+            const fiatValue = balanceNum * ethPrice;
+            balanceInFiat.textContent = `≈ ¥${fiatValue.toFixed(2)} (以 ¥${ethPrice} / ETH 计算)`;
+
+            // 更新交易次数
+            const txCount = await getTransactionCount(address);
+            transactionCount.textContent = txCount;
+
+            // 更新其他详情（这些信息需要区块链API获取，这里使用模拟数据）
+            addressType.textContent = '外部账户 (EOA)';
+            isContract.textContent = '否';
+            creationTime.textContent = '未知（需要区块链浏览器查询）';
+            lastActivity.textContent = '最后活动: 未知';
+
+            // 滚动到详情区域
+            accountDetailsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // 加载所有账户信息
+        async function loadAllAccounts() {
             if (!checkMetaMask()) return;
 
             try {
-                // 请求账户访问权限
-                const accounts = await window.ethereum.request({
-                    method: 'eth_requestAccounts'
+                console.log('开始加载账户信息...');
+
+                // 获取所有账户
+                const addresses = await window.ethereum.request({ method: 'eth_accounts' });
+                console.log('获取到的账户地址:', addresses);
+
+                if (!addresses || addresses.length === 0) {
+                    console.log('没有找到已连接的账户');
+                    currentAccounts = [];
+                    selectedAccount = null;
+                    updateConnectionStatus(false);
+                    return;
+                }
+
+                // 为每个账户获取余额
+                console.log('开始获取账户余额...');
+                const accountsWithBalances = [];
+
+                for (let i = 0; i < addresses.length; i++) {
+                    const address = addresses[i];
+                    console.log(`正在处理第 ${i + 1}/${addresses.length} 个账户:`, address);
+
+                    try {
+                        const balance = await getAccountBalance(address);
+                        accountsWithBalances.push({ address, balance });
+                        console.log(`账户 ${address} 余额获取成功:`, balance);
+                    } catch (error) {
+                        console.error(`账户 ${address} 余额获取失败:`, error);
+                        accountsWithBalances.push({ address, balance: '获取失败' });
+                    }
+
+                    // 添加小延迟避免请求过于频繁
+                    if (i < addresses.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                }
+
+                currentAccounts = accountsWithBalances;
+                console.log('所有账户信息加载完成:', currentAccounts);
+
+                // 如果没有选中的账户，选择第一个
+                if (!selectedAccount || !currentAccounts.some(acc => acc.address === selectedAccount)) {
+                    selectedAccount = currentAccounts[0].address;
+                }
+
+                // 更新显示
+                updateAccountList();
+                await selectAccount(selectedAccount);
+                await updateNetworkInfo();
+                updateConnectionStatus(true);
+
+                showNotification(`成功加载 ${currentAccounts.length} 个账户信息`);
+                return true;
+            } catch (error) {
+                console.error('加载账户信息失败:', error);
+                showNotification('加载账户信息失败: ' + error.message, true);
+                return false;
+            }
+        }
+
+        // 连接/断开MetaMask
+        async function toggleMetaMaskConnection() {
+            if (!checkMetaMask()) return;
+
+            try {
+                // 检查当前是否已连接
+                const currentAccounts = await window.ethereum.request({ method: 'eth_accounts' });
+                const isConnected = currentAccounts && currentAccounts.length > 0;
+
+                if (isConnected) {
+                    // 断开连接（MetaMask没有直接断开的方法，这里只是更新UI）
+                    selectedAccount = null;
+                    updateConnectionStatus(false);
+                    showNotification('已断开与MetaMask的连接');
+                } else {
+                    // 请求连接
+                    connectionStatus.innerHTML = `
+                        <i class="fa fa-circle-o-notch fa-spin"></i>
+                        <span>等待MetaMask授权...</span>
+                    `;
+
+                    // 请求账户访问权限
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    showNotification('已成功连接MetaMask钱包');
+
+                    // 加载账户信息
+                    await loadAllAccounts();
+                }
+            } catch (error) {
+                console.error('连接操作失败:', error);
+                showNotification('操作失败: ' + error.message, true);
+                updateConnectionStatus(false);
+            }
+        }
+
+        // 复制地址到剪贴板
+        function copyAddressToClipboard() {
+            if (!selectedAccount) return;
+
+            navigator.clipboard.writeText(selectedAccount)
+                .then(() => {
+                    showNotification('地址已复制到剪贴板');
+                })
+                .catch(err => {
+                    console.error('复制失败:', err);
+                    showNotification('复制失败，请手动复制', true);
                 });
+        }
 
-                // 获取当前链ID
-                const chainId = await window.ethereum.request({
-                    method: 'eth_chainId'
-                });
+        // 在Etherscan上查看地址
+        function viewOnEtherscan() {
+            if (!selectedAccount || !currentChainId) return;
 
-                // 更新账户信息
-                updateAccountInfo(accounts, chainId);
+            const etherscanUrl = getEtherscanBaseUrl(currentChainId);
+            window.open(`${etherscanUrl}/address/${selectedAccount}`, '_blank');
+        }
 
-                // 监听账户变化
-                window.ethereum.on('accountsChanged', (newAccounts) => {
-                    if (newAccounts.length === 0) {
-                        accountInfo.textContent = '已断开连接';
-                        showNotification('钱包已断开连接');
+        // 查看使用指南
+        function showGuide() {
+            showNotification('使用指南模态框将在此处显示', false);
+            // 实际应用中可以显示一个详细的使用指南模态框
+        }
+
+        // 显示调试信息
+        function showDebugInfo() {
+            const debugInfo = {
+                'MetaMask状态': window.ethereum ? '已安装' : '未安装',
+                '当前网络': currentChainId || '未知',
+                '已连接账户数': currentAccounts.length,
+                '选中账户': selectedAccount || '无',
+                '账户详情': currentAccounts.map(acc => ({
+                    '地址': acc.address,
+                    '余额': acc.balance,
+                    '余额状态': acc.balance === '获取失败' ? '失败' : '成功'
+                }))
+            };
+
+            console.log('=== 调试信息 ===');
+            console.log(debugInfo);
+
+            // 显示在通知中
+            const debugText = JSON.stringify(debugInfo, null, 2);
+            showNotification('调试信息已输出到控制台，请按F12查看', false);
+
+            // 也可以尝试获取更详细的网络信息
+            if (window.ethereum) {
+                window.ethereum.request({ method: 'eth_chainId' })
+                    .then(chainId => {
+                        console.log('当前链ID:', chainId);
+                        return window.ethereum.request({ method: 'net_version' });
+                    })
+                    .then(netVersion => {
+                        console.log('网络版本:', netVersion);
+                    })
+                    .catch(error => {
+                        console.error('获取网络信息失败:', error);
+                    });
+            }
+        }
+
+        // 初始化事件监听
+        function initEventListeners() {
+            // 连接按钮
+            connectBtn.addEventListener('click', toggleMetaMaskConnection);
+
+            // 刷新按钮
+            refreshBtn.addEventListener('click', async () => {
+                refreshBtn.innerHTML = `
+                    <i class="fa fa-refresh fa-spin"></i>
+                    <span>刷新中...</span>
+                `;
+                await loadAllAccounts();
+                refreshBtn.innerHTML = `
+                    <i class="fa fa-refresh"></i>
+                    <span>刷新数据</span>
+                `;
+                showNotification('数据已刷新');
+            });
+
+            // 指南按钮
+            guideBtn.addEventListener('click', showGuide);
+
+            // 调试按钮
+            debugBtn.addEventListener('click', showDebugInfo);
+
+            // 复制地址按钮
+            copyAddressBtn.addEventListener('click', copyAddressToClipboard);
+
+            // 在Etherscan上查看
+            viewOnEtherscanBtn.addEventListener('click', viewOnEtherscan);
+
+            // 监听账户变化
+            if (window.ethereum) {
+                window.ethereum.on('accountsChanged', async (accounts) => {
+                    if (accounts.length === 0) {
+                        // 所有账户都已断开连接
+                        selectedAccount = null;
+                        updateConnectionStatus(false);
+                        showNotification('所有账户已断开连接');
                     } else {
-                        updateAccountInfo(newAccounts, chainId);
-                        showNotification('账户已切换');
+                        // 账户列表已更改
+                        await loadAllAccounts();
+                        showNotification('账户列表已更新');
                     }
                 });
 
                 // 监听网络变化
-                window.ethereum.on('chainChanged', (newChainId) => {
-                    const accounts = window.ethereum.selectedAddress ? [window.ethereum.selectedAddress] : [];
-                    updateAccountInfo(accounts, newChainId);
+                window.ethereum.on('chainChanged', async (chainId) => {
+                    await updateNetworkInfo();
+                    // 网络变化后重新加载账户余额
+                    await loadAllAccounts();
                     showNotification('网络已切换');
                 });
 
-            } catch (error) {
-                console.error('连接失败:', error);
-                showNotification('连接失败: ' + error.message, true);
-            }
-        }
-
-        // 检查是否已有连接的账户
-        async function checkConnectedAccount() {
-            if (!checkMetaMask()) return;
-
-            try {
-                const accounts = await window.ethereum.request({
-                    method: 'eth_accounts'
+                // 监听断开连接
+                window.ethereum.on('disconnect', (error) => {
+                    console.error('MetaMask已断开连接:', error);
+                    selectedAccount = null;
+                    updateConnectionStatus(false);
+                    showNotification('MetaMask已断开连接', true);
                 });
-
-                const chainId = await window.ethereum.request({
-                    method: 'eth_chainId'
-                });
-
-                if (accounts.length > 0) {
-                    updateAccountInfo(accounts, chainId);
-                }
-            } catch (error) {
-                console.error('检查账户失败:', error);
             }
         }
 
         // 页面加载时检查是否已有连接的账户
-        window.addEventListener('load', checkConnectedAccount);
+        window.addEventListener('load', async () => {
+            initEventListeners();
 
-        // 绑定连接按钮事件
-        connectBtn.addEventListener('click', connectMetaMask);
+            if (checkMetaMask()) {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                    if (accounts && accounts.length > 0) {
+                        await loadAllAccounts();
+                    } else {
+                        updateConnectionStatus(false);
+                    }
+                } catch (error) {
+                    console.error('初始化检查失败:', error);
+                    updateConnectionStatus(false);
+                }
+            }
+        });
     </script>
 </body>
 
