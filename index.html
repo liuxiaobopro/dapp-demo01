@@ -213,6 +213,16 @@
                             <i class="fa fa-external-link"></i>
                             <span>查看详情</span>
                         </button>
+                        <button id="transferBtn"
+                            class="bg-success/20 hover:bg-success/30 text-success transition-colors px-4 py-2 rounded-lg text-sm flex items-center gap-1">
+                            <i class="fa fa-send"></i>
+                            <span>转账</span>
+                        </button>
+                        <button id="historyBtn"
+                            class="bg-primary/20 hover:bg-primary/30 text-primary transition-colors px-4 py-2 rounded-lg text-sm flex items-center gap-1">
+                            <i class="fa fa-history"></i>
+                            <span>历史</span>
+                        </button>
                     </div>
                 </div>
 
@@ -261,6 +271,21 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- 转账历史记录 -->
+                <div id="transferHistorySection" class="mt-8">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <i class="fa fa-history text-primary"></i>
+                        <span>转账历史</span>
+                    </h3>
+                    <div id="transferHistoryList" class="space-y-3">
+                        <!-- 历史记录将通过JavaScript动态生成 -->
+                    </div>
+                    <div id="noHistoryMessage" class="text-center text-gray-400 py-8 hidden">
+                        <i class="fa fa-inbox text-4xl mb-4"></i>
+                        <p>暂无转账记录</p>
+                    </div>
+                </div>
             </div>
 
             <!-- 未连接状态提示 -->
@@ -290,6 +315,96 @@
     <!-- 状态通知 -->
     <div id="notification"
         class="fixed bottom-6 right-6 px-6 py-4 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50 max-w-sm">
+    </div>
+
+    <!-- 转账模态框 -->
+    <div id="transferModal"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-dark rounded-xl border border-primary/20 w-full max-w-md">
+            <!-- 模态框头部 -->
+            <div class="flex justify-between items-center p-6 border-b border-gray-700/50">
+                <h3 class="text-xl font-semibold flex items-center gap-2">
+                    <i class="fa fa-send text-success"></i>
+                    <span>发送ETH</span>
+                </h3>
+                <button id="closeTransferModal" class="text-gray-400 hover:text-white transition-colors">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <!-- 模态框内容 -->
+            <div class="p-6">
+                <form id="transferForm">
+                    <!-- 发送方信息 -->
+                    <div class="mb-6">
+                        <label class="block text-sm text-gray-400 mb-2">发送方</label>
+                        <div class="bg-dark/50 p-3 rounded-lg border border-gray-700/50">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                                    <span class="text-xs font-bold" id="senderInitials"></span>
+                                </div>
+                                <div>
+                                    <div class="font-medium" id="senderName"></div>
+                                    <div class="text-sm text-gray-400 font-mono" id="senderAddress"></div>
+                                </div>
+                            </div>
+                            <div class="mt-2 text-sm text-gray-400">
+                                余额: <span id="senderBalance" class="text-white font-medium"></span> ETH
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 接收方地址 -->
+                    <div class="mb-4">
+                        <label for="recipientAddress" class="block text-sm text-gray-400 mb-2">接收方地址</label>
+                        <input type="text" id="recipientAddress" placeholder="0x..."
+                            class="w-full bg-dark/50 border border-gray-700/50 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-primary/60 focus:outline-none transition-colors">
+                        <div id="addressError" class="text-danger text-sm mt-1 hidden"></div>
+                    </div>
+
+                    <!-- 转账金额 -->
+                    <div class="mb-4">
+                        <label for="transferAmount" class="block text-sm text-gray-400 mb-2">转账金额 (ETH)</label>
+                        <div class="relative">
+                            <input type="number" id="transferAmount" step="0.000001" min="0" placeholder="0.0"
+                                class="w-full bg-dark/50 border border-gray-700/50 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-primary/60 focus:outline-none transition-colors">
+                            <button type="button" id="maxAmountBtn"
+                                class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-primary/20 text-primary px-3 py-1 rounded text-sm hover:bg-primary/30 transition-colors">
+                                最大
+                            </button>
+                        </div>
+                        <div id="amountError" class="text-danger text-sm mt-1 hidden"></div>
+                    </div>
+
+                    <!-- Gas费用估算 -->
+                    <div class="mb-6">
+                        <div class="bg-dark/30 p-3 rounded-lg border border-gray-700/30">
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-gray-400">预估Gas费用:</span>
+                                <span id="estimatedGas" class="text-white">计算中...</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm mt-1">
+                                <span class="text-gray-400">总费用:</span>
+                                <span id="totalCost" class="text-white font-medium">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="flex gap-3">
+                        <button type="button" id="cancelTransfer"
+                            class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 px-4 rounded-lg transition-colors">
+                            取消
+                        </button>
+                        <button type="submit" id="confirmTransfer"
+                            class="flex-1 bg-success hover:bg-success/80 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+                            <i class="fa fa-send"></i>
+                            <span>确认转账</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- 页脚 -->
@@ -352,6 +467,27 @@
         const closeMenu = document.getElementById('closeMenu');
         const mobileMenu = document.getElementById('mobileMenu');
         const pollingStatus = document.getElementById('pollingStatus');
+        const transferBtn = document.getElementById('transferBtn');
+        const transferModal = document.getElementById('transferModal');
+        const closeTransferModal = document.getElementById('closeTransferModal');
+        const transferForm = document.getElementById('transferForm');
+        const recipientAddress = document.getElementById('recipientAddress');
+        const transferAmount = document.getElementById('transferAmount');
+        const maxAmountBtn = document.getElementById('maxAmountBtn');
+        const cancelTransfer = document.getElementById('cancelTransfer');
+        const confirmTransfer = document.getElementById('confirmTransfer');
+        const addressError = document.getElementById('addressError');
+        const amountError = document.getElementById('amountError');
+        const estimatedGas = document.getElementById('estimatedGas');
+        const totalCost = document.getElementById('totalCost');
+        const senderInitials = document.getElementById('senderInitials');
+        const senderName = document.getElementById('senderName');
+        const senderAddress = document.getElementById('senderAddress');
+        const senderBalance = document.getElementById('senderBalance');
+        const historyBtn = document.getElementById('historyBtn');
+        const transferHistorySection = document.getElementById('transferHistorySection');
+        const transferHistoryList = document.getElementById('transferHistoryList');
+        const noHistoryMessage = document.getElementById('noHistoryMessage');
 
         // 全局变量
         let currentAccounts = [];
@@ -360,6 +496,7 @@
         let balancePollingInterval = null;
         let isPollingActive = false;
         let lastKnownBalances = new Map(); // 存储上次已知的余额
+        let transferHistory = []; // 存储转账历史记录
 
         // 移动菜单控制
         menuBtn.addEventListener('click', () => {
@@ -893,6 +1030,382 @@
             }
         }
 
+        // 验证以太坊地址
+        function isValidAddress(address) {
+            return /^0x[a-fA-F0-9]{40}$/.test(address);
+        }
+
+        // 将ETH转换为Wei
+        function ethToWei(ethAmount) {
+            return Math.floor(parseFloat(ethAmount) * Math.pow(10, 18)).toString();
+        }
+
+        // 将Wei转换为ETH
+        function weiToEth(weiAmount) {
+            return (parseInt(weiAmount, 16) / Math.pow(10, 18)).toString();
+        }
+
+        // 估算Gas费用
+        async function estimateGasFee(toAddress, value) {
+            try {
+                const gasEstimate = await window.ethereum.request({
+                    method: 'eth_estimateGas',
+                    params: [{
+                        from: selectedAccount,
+                        to: toAddress,
+                        value: '0x' + parseInt(value).toString(16)
+                    }]
+                });
+
+                const gasPrice = await window.ethereum.request({
+                    method: 'eth_gasPrice'
+                });
+
+                const gasLimit = parseInt(gasEstimate, 16);
+                const gasPriceWei = parseInt(gasPrice, 16);
+                const totalGasCost = gasLimit * gasPriceWei;
+                const totalGasCostEth = weiToEth(totalGasCost.toString(16));
+
+                return {
+                    gasLimit: gasLimit,
+                    gasPrice: gasPriceWei,
+                    totalCost: totalGasCostEth
+                };
+            } catch (error) {
+                console.error('估算Gas费用失败:', error);
+                return null;
+            }
+        }
+
+        // 打开转账模态框
+        function openTransferModal() {
+            if (!selectedAccount) {
+                showNotification('请先选择一个账户', true);
+                return;
+            }
+
+            const account = currentAccounts.find(acc => acc.address === selectedAccount);
+            if (!account) {
+                showNotification('未找到选中的账户', true);
+                return;
+            }
+
+            // 填充发送方信息
+            const accountName = account.name || `账户 ${currentAccounts.indexOf(account) + 1}`;
+            senderInitials.textContent = account.address.slice(2, 4).toUpperCase();
+            senderName.textContent = accountName;
+            senderAddress.textContent = account.address;
+            senderBalance.textContent = account.balance;
+
+            // 清空表单
+            recipientAddress.value = '';
+            transferAmount.value = '';
+            addressError.classList.add('hidden');
+            amountError.classList.add('hidden');
+            estimatedGas.textContent = '计算中...';
+            totalCost.textContent = '-';
+
+            // 显示模态框
+            transferModal.classList.remove('hidden');
+        }
+
+        // 关闭转账模态框
+        function closeTransferModalFunc() {
+            transferModal.classList.add('hidden');
+        }
+
+        // 设置最大金额
+        function setMaxAmount() {
+            const account = currentAccounts.find(acc => acc.address === selectedAccount);
+            if (account) {
+                const balance = parseFloat(account.balance);
+                // 预留一些ETH作为Gas费用
+                const maxAmount = Math.max(0, balance - 0.01);
+                transferAmount.value = maxAmount.toFixed(6);
+                updateGasEstimate();
+            }
+        }
+
+        // 更新Gas费用估算
+        async function updateGasEstimate() {
+            const toAddress = recipientAddress.value.trim();
+            const amount = transferAmount.value;
+
+            if (!toAddress || !amount || !isValidAddress(toAddress) || parseFloat(amount) <= 0) {
+                estimatedGas.textContent = '计算中...';
+                totalCost.textContent = '-';
+                return;
+            }
+
+            try {
+                const gasEstimate = await estimateGasFee(toAddress, ethToWei(amount));
+                if (gasEstimate) {
+                    estimatedGas.textContent = `${gasEstimate.totalCost.toFixed(6)} ETH`;
+                    const totalAmount = parseFloat(amount) + gasEstimate.totalCost;
+                    totalCost.textContent = `${totalAmount.toFixed(6)} ETH`;
+                } else {
+                    estimatedGas.textContent = '估算失败';
+                    totalCost.textContent = '-';
+                }
+            } catch (error) {
+                console.error('更新Gas估算失败:', error);
+                estimatedGas.textContent = '估算失败';
+                totalCost.textContent = '-';
+            }
+        }
+
+        // 验证转账表单
+        function validateTransferForm() {
+            let isValid = true;
+
+            // 验证接收方地址
+            const toAddress = recipientAddress.value.trim();
+            if (!toAddress) {
+                addressError.textContent = '请输入接收方地址';
+                addressError.classList.remove('hidden');
+                isValid = false;
+            } else if (!isValidAddress(toAddress)) {
+                addressError.textContent = '请输入有效的以太坊地址';
+                addressError.classList.remove('hidden');
+                isValid = false;
+            } else if (toAddress.toLowerCase() === selectedAccount.toLowerCase()) {
+                addressError.textContent = '不能向自己转账';
+                addressError.classList.remove('hidden');
+                isValid = false;
+            } else {
+                addressError.classList.add('hidden');
+            }
+
+            // 验证转账金额
+            const amount = parseFloat(transferAmount.value);
+            const account = currentAccounts.find(acc => acc.address === selectedAccount);
+            const balance = parseFloat(account.balance);
+
+            if (!transferAmount.value || isNaN(amount) || amount <= 0) {
+                amountError.textContent = '请输入有效的转账金额';
+                amountError.classList.remove('hidden');
+                isValid = false;
+            } else if (amount > balance) {
+                amountError.textContent = '余额不足';
+                amountError.classList.remove('hidden');
+                isValid = false;
+            } else {
+                amountError.classList.add('hidden');
+            }
+
+            return isValid;
+        }
+
+        // 执行转账
+        async function executeTransfer() {
+            if (!validateTransferForm()) {
+                return;
+            }
+
+            const toAddress = recipientAddress.value.trim();
+            const amount = transferAmount.value;
+            const value = '0x' + parseInt(ethToWei(amount)).toString(16);
+
+            try {
+                confirmTransfer.disabled = true;
+                confirmTransfer.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 处理中...';
+
+                // 发送交易
+                const txHash = await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: selectedAccount,
+                        to: toAddress,
+                        value: value,
+                        gas: '0x5208' // 21000 gas limit for simple transfer
+                    }]
+                });
+
+                showNotification(`转账已提交，交易哈希: ${txHash.slice(0, 10)}...`, false);
+                closeTransferModalFunc();
+
+                // 添加转账记录到历史
+                addTransferToHistory({
+                    from: selectedAccount,
+                    to: toAddress,
+                    amount: amount,
+                    txHash: txHash,
+                    status: 'pending'
+                });
+
+                // 等待交易确认
+                showNotification('等待交易确认...', false);
+
+                // 监听交易状态
+                const receipt = await waitForTransactionReceipt(txHash);
+                if (receipt.status === '0x1') {
+                    showNotification('转账成功！', false);
+
+                    // 更新历史记录状态
+                    const historyItem = transferHistory.find(item => item.txHash === txHash);
+                    if (historyItem) {
+                        historyItem.status = 'success';
+                        updateTransferHistoryDisplay();
+                        localStorage.setItem('transferHistory', JSON.stringify(transferHistory));
+                    }
+
+                    // 立即刷新余额
+                    await loadAllAccounts();
+                } else {
+                    showNotification('转账失败', true);
+
+                    // 更新历史记录状态
+                    const historyItem = transferHistory.find(item => item.txHash === txHash);
+                    if (historyItem) {
+                        historyItem.status = 'failed';
+                        updateTransferHistoryDisplay();
+                        localStorage.setItem('transferHistory', JSON.stringify(transferHistory));
+                    }
+                }
+
+            } catch (error) {
+                console.error('转账失败:', error);
+                if (error.code === 4001) {
+                    showNotification('用户取消了交易', true);
+                } else {
+                    showNotification('转账失败: ' + error.message, true);
+                }
+            } finally {
+                confirmTransfer.disabled = false;
+                confirmTransfer.innerHTML = '<i class="fa fa-send"></i> 确认转账';
+            }
+        }
+
+        // 等待交易确认
+        async function waitForTransactionReceipt(txHash) {
+            return new Promise((resolve, reject) => {
+                const checkReceipt = async () => {
+                    try {
+                        const receipt = await window.ethereum.request({
+                            method: 'eth_getTransactionReceipt',
+                            params: [txHash]
+                        });
+
+                        if (receipt) {
+                            resolve(receipt);
+                        } else {
+                            setTimeout(checkReceipt, 2000); // 2秒后重试
+                        }
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                checkReceipt();
+            });
+        }
+
+        // 添加转账记录到历史
+        function addTransferToHistory(transferData) {
+            const historyItem = {
+                id: Date.now(),
+                timestamp: new Date(),
+                from: transferData.from,
+                to: transferData.to,
+                amount: transferData.amount,
+                txHash: transferData.txHash,
+                status: transferData.status || 'pending'
+            };
+
+            transferHistory.unshift(historyItem); // 添加到开头
+            updateTransferHistoryDisplay();
+
+            // 保存到本地存储
+            localStorage.setItem('transferHistory', JSON.stringify(transferHistory));
+        }
+
+        // 更新转账历史显示
+        function updateTransferHistoryDisplay() {
+            if (transferHistory.length === 0) {
+                transferHistoryList.innerHTML = '';
+                noHistoryMessage.classList.remove('hidden');
+                return;
+            }
+
+            noHistoryMessage.classList.add('hidden');
+            transferHistoryList.innerHTML = '';
+
+            transferHistory.forEach(item => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'bg-dark/50 p-4 rounded-lg border border-gray-700/50';
+
+                const isOutgoing = item.from.toLowerCase() === selectedAccount.toLowerCase();
+                const otherAddress = isOutgoing ? item.to : item.from;
+                const amount = parseFloat(item.amount);
+
+                historyItem.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full ${isOutgoing ? 'bg-danger/20' : 'bg-success/20'} flex items-center justify-center">
+                                <i class="fa fa-${isOutgoing ? 'arrow-up' : 'arrow-down'} text-${isOutgoing ? 'danger' : 'success'}"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium">
+                                    ${isOutgoing ? '发送' : '接收'} ${amount.toFixed(6)} ETH
+                                </div>
+                                <div class="text-sm text-gray-400 font-mono">
+                                    ${formatAddress(otherAddress)}
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    ${item.timestamp.toLocaleString()}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-gray-400 mb-1">状态</div>
+                            <div class="text-sm ${item.status === 'success' ? 'text-success' : item.status === 'failed' ? 'text-danger' : 'text-warning'}">
+                                ${item.status === 'success' ? '成功' : item.status === 'failed' ? '失败' : '处理中'}
+                            </div>
+                            <button class="text-xs text-primary hover:text-accent mt-1" onclick="viewTransactionOnEtherscan('${item.txHash}')">
+                                查看交易
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                transferHistoryList.appendChild(historyItem);
+            });
+        }
+
+        // 在Etherscan上查看交易
+        function viewTransactionOnEtherscan(txHash) {
+            if (!currentChainId) return;
+            const etherscanUrl = getEtherscanBaseUrl(currentChainId);
+            window.open(`${etherscanUrl}/tx/${txHash}`, '_blank');
+        }
+
+        // 加载转账历史
+        function loadTransferHistory() {
+            const saved = localStorage.getItem('transferHistory');
+            if (saved) {
+                try {
+                    transferHistory = JSON.parse(saved);
+                    // 转换时间戳为Date对象
+                    transferHistory.forEach(item => {
+                        item.timestamp = new Date(item.timestamp);
+                    });
+                    updateTransferHistoryDisplay();
+                } catch (error) {
+                    console.error('加载转账历史失败:', error);
+                    transferHistory = [];
+                }
+            }
+        }
+
+        // 切换历史记录显示
+        function toggleTransferHistory() {
+            if (transferHistorySection.classList.contains('hidden')) {
+                transferHistorySection.classList.remove('hidden');
+                updateTransferHistoryDisplay();
+            } else {
+                transferHistorySection.classList.add('hidden');
+            }
+        }
+
         // 显示调试信息
         function showDebugInfo() {
             const debugInfo = {
@@ -962,6 +1475,36 @@
             // 在Etherscan上查看
             viewOnEtherscanBtn.addEventListener('click', viewOnEtherscan);
 
+            // 转账按钮
+            transferBtn.addEventListener('click', openTransferModal);
+
+            // 历史按钮
+            historyBtn.addEventListener('click', toggleTransferHistory);
+
+            // 转账模态框相关事件
+            closeTransferModal.addEventListener('click', closeTransferModalFunc);
+            cancelTransfer.addEventListener('click', closeTransferModalFunc);
+
+            // 最大金额按钮
+            maxAmountBtn.addEventListener('click', setMaxAmount);
+
+            // 表单输入事件
+            recipientAddress.addEventListener('input', updateGasEstimate);
+            transferAmount.addEventListener('input', updateGasEstimate);
+
+            // 表单提交
+            transferForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                executeTransfer();
+            });
+
+            // 点击模态框背景关闭
+            transferModal.addEventListener('click', (e) => {
+                if (e.target === transferModal) {
+                    closeTransferModalFunc();
+                }
+            });
+
             // 监听账户变化
             if (window.ethereum) {
                 window.ethereum.on('accountsChanged', async (accounts) => {
@@ -1015,6 +1558,9 @@
         // 页面加载时检查是否已有连接的账户
         window.addEventListener('load', async () => {
             initEventListeners();
+
+            // 加载转账历史
+            loadTransferHistory();
 
             if (checkMetaMask()) {
                 try {
