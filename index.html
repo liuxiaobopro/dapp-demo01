@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MetaMask 连接演示</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <!-- 配置Tailwind自定义颜色 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#627EEA',
+                        secondary: '#10141F',
+                        accent: '#00F0FF',
+                        dark: '#0B0E19',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .bg-gradient-eth {
+                background: linear-gradient(135deg, #627EEA 0%, #7F5AF0 100%);
+            }
+            .text-glow {
+                text-shadow: 0 0 10px rgba(0, 240, 255, 0.7);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(98, 126, 234, 0.3);
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-secondary font-inter text-white min-h-screen flex flex-col">
+    <!-- 导航栏 -->
+    <nav
+        class="bg-dark/80 backdrop-blur-md py-4 px-6 md:px-12 flex justify-between items-center sticky top-0 z-50 border-b border-primary/20">
+        <div class="flex items-center gap-2">
+            <i class="fa fa-ethereum text-accent text-2xl"></i>
+            <span
+                class="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">EthConnect</span>
+        </div>
+        <div class="hidden md:flex items-center gap-8">
+            <a href="#" class="hover:text-accent transition-colors">首页</a>
+            <a href="#" class="hover:text-accent transition-colors">功能</a>
+            <a href="#" class="hover:text-accent transition-colors">文档</a>
+            <a href="#" class="hover:text-accent transition-colors">关于</a>
+        </div>
+        <button id="menuBtn" class="md:hidden text-2xl">
+            <i class="fa fa-bars"></i>
+        </button>
+    </nav>
+
+    <!-- 移动端菜单 -->
+    <div id="mobileMenu"
+        class="hidden bg-dark/95 backdrop-blur-md fixed inset-0 z-40 flex flex-col items-center justify-center gap-8 text-xl">
+        <button id="closeMenu" class="absolute top-6 right-6 text-2xl">
+            <i class="fa fa-times"></i>
+        </button>
+        <a href="#" class="hover:text-accent transition-colors">首页</a>
+        <a href="#" class="hover:text-accent transition-colors">功能</a>
+        <a href="#" class="hover:text-accent transition-colors">文档</a>
+        <a href="#" class="hover:text-accent transition-colors">关于</a>
+    </div>
+
+    <!-- 主内容区 -->
+    <main class="flex-grow flex flex-col items-center justify-center px-6 py-16 md:py-24">
+        <div class="max-w-4xl w-full mx-auto">
+            <div class="text-center mb-16">
+                <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold mb-6 leading-tight">
+                    连接你的 <span class="text-glow text-accent">MetaMask</span> 钱包
+                </h1>
+                <p class="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto">
+                    点击下方按钮，授权访问你的以太坊账户，开启区块链交互体验
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+                <div class="bg-dark/50 rounded-xl p-8 border border-primary/20 card-hover">
+                    <div class="w-14 h-14 bg-primary/20 rounded-lg flex items-center justify-center mb-6">
+                        <i class="fa fa-plug text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">简单连接</h3>
+                    <p class="text-gray-400 mb-6">一键连接你的MetaMask钱包，无需复杂设置</p>
+                    <button id="connectBtn"
+                        class="w-full bg-gradient-eth py-3 px-6 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+                        <i class="fa fa-link"></i>
+                        <span>连接钱包</span>
+                    </button>
+                </div>
+
+                <div class="bg-dark/50 rounded-xl p-8 border border-primary/20 card-hover">
+                    <div class="w-14 h-14 bg-primary/20 rounded-lg flex items-center justify-center mb-6">
+                        <i class="fa fa-info-circle text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">账户信息</h3>
+                    <p class="text-gray-400 mb-6">查看已连接的账户地址和网络信息</p>
+                    <div id="accountInfo" class="w-full bg-dark/80 py-4 px-6 rounded-lg text-center text-gray-400">
+                        未连接钱包
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-dark/30 rounded-xl p-6 md:p-8 border border-primary/10">
+                <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <i class="fa fa-exclamation-circle text-accent"></i>
+                    如何使用
+                </h3>
+                <ul class="space-y-4 text-gray-300">
+                    <li class="flex gap-4">
+                        <span
+                            class="bg-primary/20 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                        <p>确保你已安装<a href="https://metamask.io/" target="_blank"
+                                class="text-accent hover:underline">MetaMask浏览器插件</a></p>
+                    </li>
+                    <li class="flex gap-4">
+                        <span
+                            class="bg-primary/20 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                        <p>点击"连接钱包"按钮，触发MetaMask授权请求</p>
+                    </li>
+                    <li class="flex gap-4">
+                        <span
+                            class="bg-primary/20 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+                        <p>在MetaMask弹窗中确认授权，允许网站访问你的账户</p>
+                    </li>
+                    <li class="flex gap-4">
+                        <span
+                            class="bg-primary/20 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">4</span>
+                        <p>授权成功后，你将看到已连接的账户信息</p>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <!-- 状态通知 -->
+    <div id="notification"
+        class="fixed bottom-6 right-6 px-6 py-4 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50 max-w-sm">
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark/80 backdrop-blur-md py-8 px-6 border-t border-primary/20">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center gap-2 mb-4 md:mb-0">
+                    <i class="fa fa-ethereum text-accent"></i>
+                    <span class="font-bold">EthConnect</span>
+                </div>
+                <div class="flex gap-6">
+                    <a href="#" class="text-gray-400 hover:text-accent transition-colors">
+                        <i class="fa fa-github text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-accent transition-colors">
+                        <i class="fa fa-twitter text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-accent transition-colors">
+                        <i class="fa fa-discord text-xl"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="mt-6 text-center text-gray-500 text-sm">
+                &copy; 2023 EthConnect. 保护你的数字资产安全。
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // DOM元素
+        const connectBtn = document.getElementById('connectBtn');
+        const accountInfo = document.getElementById('accountInfo');
+        const notification = document.getElementById('notification');
+        const menuBtn = document.getElementById('menuBtn');
+        const closeMenu = document.getElementById('closeMenu');
+        const mobileMenu = document.getElementById('mobileMenu');
+
+        // 移动菜单控制
+        menuBtn.addEventListener('click', () => {
+            mobileMenu.classList.remove('hidden');
+            setTimeout(() => {
+                mobileMenu.classList.add('animate-fadeIn');
+            }, 10);
+        });
+
+        closeMenu.addEventListener('click', () => {
+            mobileMenu.classList.add('hidden');
+        });
+
+        // 显示通知
+        function showNotification(message, isError = false) {
+            notification.textContent = message;
+            notification.className = 'fixed bottom-6 right-6 px-6 py-4 rounded-lg shadow-lg transform translate-y-0 opacity-100 transition-all duration-300 z-50 max-w-sm';
+
+            if (isError) {
+                notification.classList.add('bg-red-500/90', 'text-white');
+            } else {
+                notification.classList.add('bg-green-500/90', 'text-white');
+            }
+
+            setTimeout(() => {
+                notification.classList.remove('translate-y-0', 'opacity-100');
+                notification.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // 检查MetaMask是否安装
+        function checkMetaMask() {
+            if (typeof window.ethereum === 'undefined') {
+                showNotification('请安装MetaMask钱包插件', true);
+                return false;
+            }
+            return true;
+        }
+
+        // 格式化地址，只显示前6位和后4位
+        function formatAddress(address) {
+            return `${address.slice(0, 6)}...${address.slice(-4)}`;
+        }
+
+        // 更新账户信息显示
+        function updateAccountInfo(accounts, chainId) {
+            if (accounts.length > 0) {
+                const formattedAddress = formatAddress(accounts[0]);
+                let networkName = '未知网络';
+
+                // 根据chainId判断网络名称
+                switch (chainId) {
+                    case '0x1':
+                        networkName = '以太坊主网';
+                        break;
+                    case '0x3':
+                        networkName = 'Ropsten测试网';
+                        break;
+                    case '0x4':
+                        networkName = 'Rinkeby测试网';
+                        break;
+                    case '0x5':
+                        networkName = 'Goerli测试网';
+                        break;
+                    case '0x2a':
+                        networkName = 'Kovan测试网';
+                        break;
+                    case '0x89':
+                        networkName = 'Polygon主网';
+                        break;
+                }
+
+                accountInfo.innerHTML = `
+                    <div class="flex items-center justify-center gap-2 text-accent mb-2">
+                        <i class="fa fa-user-circle"></i>
+                        <span>${formattedAddress}</span>
+                    </div>
+                    <div class="text-sm text-gray-400">
+                        网络: ${networkName} (${chainId})
+                    </div>
+                `;
+                showNotification('已成功连接MetaMask钱包');
+            }
+        }
+
+        // 连接MetaMask
+        async function connectMetaMask() {
+            if (!checkMetaMask()) return;
+
+            try {
+                // 请求账户访问权限
+                const accounts = await window.ethereum.request({
+                    method: 'eth_requestAccounts'
+                });
+
+                // 获取当前链ID
+                const chainId = await window.ethereum.request({
+                    method: 'eth_chainId'
+                });
+
+                // 更新账户信息
+                updateAccountInfo(accounts, chainId);
+
+                // 监听账户变化
+                window.ethereum.on('accountsChanged', (newAccounts) => {
+                    if (newAccounts.length === 0) {
+                        accountInfo.textContent = '已断开连接';
+                        showNotification('钱包已断开连接');
+                    } else {
+                        updateAccountInfo(newAccounts, chainId);
+                        showNotification('账户已切换');
+                    }
+                });
+
+                // 监听网络变化
+                window.ethereum.on('chainChanged', (newChainId) => {
+                    const accounts = window.ethereum.selectedAddress ? [window.ethereum.selectedAddress] : [];
+                    updateAccountInfo(accounts, newChainId);
+                    showNotification('网络已切换');
+                });
+
+            } catch (error) {
+                console.error('连接失败:', error);
+                showNotification('连接失败: ' + error.message, true);
+            }
+        }
+
+        // 检查是否已有连接的账户
+        async function checkConnectedAccount() {
+            if (!checkMetaMask()) return;
+
+            try {
+                const accounts = await window.ethereum.request({
+                    method: 'eth_accounts'
+                });
+
+                const chainId = await window.ethereum.request({
+                    method: 'eth_chainId'
+                });
+
+                if (accounts.length > 0) {
+                    updateAccountInfo(accounts, chainId);
+                }
+            } catch (error) {
+                console.error('检查账户失败:', error);
+            }
+        }
+
+        // 页面加载时检查是否已有连接的账户
+        window.addEventListener('load', checkConnectedAccount);
+
+        // 绑定连接按钮事件
+        connectBtn.addEventListener('click', connectMetaMask);
+    </script>
+</body>
+
+</html>
